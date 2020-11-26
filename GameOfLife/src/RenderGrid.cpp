@@ -37,6 +37,5 @@ void RenderGrid::Render(sf::RenderWindow& window)
 			window.draw(grid[x + numcells_x * y]);
 		}
 	}
-
 	window.display();
 }
