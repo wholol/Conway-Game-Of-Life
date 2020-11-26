@@ -8,7 +8,7 @@ public:
 	void Render(sf::RenderWindow& window);
 
 private:
-	int& cellsize;
+	int cellsize;
 	int screenwidth, screenheight;
 	std::vector<sf::RectangleShape> grid; 
 	int numcells_x, numcells_y;

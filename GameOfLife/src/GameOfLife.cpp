@@ -21,6 +21,25 @@ GameOfLife::GameOfLife(int screenwidth, int screenheight,int cellsize)
 		cellcolor.emplace_back(sf::Color::Black);
 	}
 
+	//ensure border cells are dead
+	for (int y = 0; y < numcells_y  ; ++y)
+	{
+		output[numcells_x * y] = 0;
+		output[(numcells_x - 1) + numcells_x * y] = 0;
+		//cellcolor[numcells_x * y] = sf::Color::Cyan;
+		//cellcolor[(numcells_x - 1) + numcells_x * y] = sf::Color::Cyan;
+	}
+
+	//ensure border cells are dead
+	for (int x = 0; x < numcells_x ; ++x)
+	{
+		output[x] = 0;
+		output[x + numcells_x * (numcells_y - 1)] = 0;
+		//cellcolor[x] = sf::Color::Cyan;
+		//cellcolor[x + numcells_x * (numcells_y - 1)] = sf::Color::Cyan;
+	}
+	
+
 	threadcolor.insert(std::make_pair(1, sf::Color::Red));
 	threadcolor.insert(std::make_pair(2, sf::Color::Cyan));
 	threadcolor.insert(std::make_pair(3, sf::Color::Blue));
@@ -48,6 +67,7 @@ void GameOfLife::ComputeState()
 			else {
 				state[x + numcells_x * y] = neighbours == 3;
 			}
+
 			auto find = threadcolor.find(thread_num);
 			
 			if (find != threadcolor.end())
@@ -86,11 +106,6 @@ void GameOfLife::ComputState_Threaded()
 		if (ystart == 0)
 		{
 			ystart = 1;
-		}
-
-		else if (yend == numcells_y)
-		{
-			yend = numcells_y - 1;
 		}
 
 		std::packaged_task<void()> T(std::bind(&GameOfLife::ComputeState_T, this, xstart, xend, ystart, yend, thread_num));

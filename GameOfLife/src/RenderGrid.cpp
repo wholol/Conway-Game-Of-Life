@@ -20,12 +20,12 @@ RenderGrid::RenderGrid(int screenwidth, int screenheight,GameOfLife& g,int cells
 void RenderGrid::Render(sf::RenderWindow& window)
 {
 
-	for (int y = 1; y < numcells_y - 1; ++y)
+	for (int y = 1; y < numcells_y - 1 ; ++y)
 	{
-		for (int x = 1; x < numcells_x - 1; ++x)
+		for (int x = 0 - 1; x < numcells_x - 1; ++x)
 		{
 			grid[x + numcells_x * y].setPosition(x * cellsize, y * cellsize);
-
+			
 			if ( g.GetOutputCells()[x + numcells_x * y] )		//check if output cell is alive
 			{
 				grid[x + numcells_x * y].setFillColor(g.GetCellColor()[x + numcells_x * y]);	//fill the colour of the cel lbased on thread
