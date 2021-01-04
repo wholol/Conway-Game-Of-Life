@@ -31,11 +31,10 @@ void RenderGrid::Render(sf::RenderWindow& window,double& OffSetX,double& OffSetY
 			grid[x + numcells_x * y].setPosition(x * cellsize, y * cellsize);
 			
 			auto& outputcell = g.GetOutputCells(x + OffSetX, y + OffSetY);
-			auto& colorcell = g.GetCellColor(x + OffSetX, y + OffSetY);
 
 			if ( outputcell )
 			{
-				grid[x + numcells_x * y].setFillColor( colorcell );	//fill the colour of the cel lbased on thread
+				grid[x + numcells_x * y].setFillColor( sf::Color::Red );	//fill the colour of the cel lbased on thread
 			}
 			else {
 				grid[x + numcells_x * y].setFillColor(sf::Color::Black);

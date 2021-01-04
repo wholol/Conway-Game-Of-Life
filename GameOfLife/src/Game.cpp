@@ -41,9 +41,7 @@ void Game::update() {		//update game
 
 
 	time.start_timer();
-	g.ComputeState();
-	//g.ComputeState_SIMD_naive();
-	//g.ComputState_Threaded();
+	g.ComputState_SIMD_multithread();
 	time.end_timer();
 	time.print_dt();
 	window.clear();
