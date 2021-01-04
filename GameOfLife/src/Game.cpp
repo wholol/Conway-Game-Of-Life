@@ -10,7 +10,7 @@ Game::Game(int screenwidth, int screenheight, const std::string& title, int fram
 
 
 void Game::render() {		//rendering
-	grid.Render(window);
+	grid.Render(window,OffSetX,OffSetY);
 }
 
 void Game::main_menu()
@@ -19,9 +19,31 @@ void Game::main_menu()
 
 void Game::update() {		//update game 
 	
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+	{
+		OffSetX -= 3;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+	{
+		OffSetX += 3;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+	{
+		OffSetY -= 3;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+	{
+		OffSetY += 3;
+	}
+
+
 	time.start_timer();
-	//g.ComputeState();
-	g.ComputState_Threaded();
+	g.ComputeState();
+	//g.ComputeState_SIMD_naive();
+	//g.ComputState_Threaded();
 	time.end_timer();
 	time.print_dt();
 	window.clear();

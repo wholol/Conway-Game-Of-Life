@@ -24,9 +24,8 @@ private:
 	Timer time;
 	bool quitgame = false;			//quit game
 	bool MainMenu = true;
-	double duration;
 	static constexpr int cellsize = 5;
-	
+	double OffSetX = 0.0, OffSetY = 0.0;
 	
 	sf::Event event;					//events class
 	sf::RenderWindow window;		//windows class

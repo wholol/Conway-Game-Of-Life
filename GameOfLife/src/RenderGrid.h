@@ -5,7 +5,7 @@
 class RenderGrid {
 public:
 	RenderGrid(int screenwidth, int screenheight, GameOfLife& g,int cellsize);
-	void Render(sf::RenderWindow& window);
+	void Render(sf::RenderWindow& window,double& OffSetX,double& OffSetY);
 
 private:
 	int cellsize;
