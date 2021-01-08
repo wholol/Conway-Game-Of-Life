@@ -4,47 +4,51 @@
 
 Game::Game(int screenwidth, int screenheight, const std::string& title, int framerate)
 	:window(sf::VideoMode(screenwidth, screenheight), title)
-	,g(screenwidth,screenheight,cellsize)
-	,grid(screenwidth,screenheight,g,cellsize)
+	,g(screenwidth,screenheight,cellsize,numcells_x,numcells_y,task_granularity,num_threads,generation_limit)
+	,visible_grid(screenwidth,screenheight,g,cellsize, numcells_x, numcells_y)
 {}
 
-
 void Game::render() {		//rendering
-	grid.Render(window,OffSetX,OffSetY);
-}
-
-void Game::main_menu()
-{
+	visible_grid.Render(window,OffSetX,OffSetY);
 }
 
 void Game::update() {		//update game 
 	
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 	{
-		OffSetX -= 3;
+		OffSetX -= 5;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 	{
-		OffSetX += 3;
+		OffSetX += 5;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 	{
-		OffSetY -= 3;
+		OffSetY -= 5;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 	{
-		OffSetY += 3;
+		OffSetY += 5;
 	}
 
+	if (g.GenerationLimitReached())
+	{
+		std::cout << "generation reached!.Logging data to csv." << std::endl;
+		time.log_data();
+		quitgame = true;
+	}
 
-	time.start_timer();
-	g.ComputState_SIMD_multithread();
-	time.end_timer();
-	time.print_dt();
-	window.clear();
+	else {
+		time.start_timer();
+		g.ComputState_SIMD_multithread();
+		time.end_timer();
+		std::cout << g.getGenerationNum() << std::endl;
+		time.print_dt();
+		window.clear();
+	}
 	
 }
 

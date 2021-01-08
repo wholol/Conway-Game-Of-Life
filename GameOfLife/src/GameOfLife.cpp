@@ -5,26 +5,31 @@
 #include <immintrin.h>
 #include "Timer.h"
 
-GameOfLife::GameOfLife(int screenwidth, int screenheight,int cellsize)
-	:pool(std::thread::hardware_concurrency()),screenheight(screenheight), screenwidth(screenwidth), 
-	 cellsize(cellsize)
+GameOfLife::GameOfLife(int screenwidth, int screenheight,int cellsize,int numcells_x, int numcells_y ,int task_granularity,int num_threads,int generation_limit)
+	:pool(num_threads),screenheight(screenheight), screenwidth(screenwidth),task_granularity(task_granularity),generation_limit(generation_limit),
+	 cellsize(cellsize),numcells_x(numcells_x), numcells_y(numcells_y)
 {
-	numcells_x = 32800;
-	numcells_y = 30000;
 	numcells_x += 2;		//for borders
 	if (!(numcells_x - 2 % sizeof(__m256i)))	//make sure simd can compute all cells
 	{
 		throw std::runtime_error("number of cells in x not valid. SIMD may not compute all cells.");
 	}
 
+	if (numcells_y % task_granularity != 0)
+	{
+		throw std::runtime_error("number of cells divided by thread number not even!");
+	}
+
+
 	int vector_size = (numcells_x * numcells_y);
-	//aligned alloc not possible, since borders(beginning of array) are not computed
+	//aligned malloc not possible, since borders(beginning of array) are not computed
 	state.reserve(vector_size);
 	output.reserve(vector_size);
 	neighbours.reserve(vector_size);
 
 	for (int i = 0; i < vector_size; ++ i)
 	{
+		neighbours.emplace_back(0);
 		output.emplace_back(rand() % 2);		//init state to zero.
 	}
 
@@ -33,7 +38,6 @@ GameOfLife::GameOfLife(int screenwidth, int screenheight,int cellsize)
 	{
 		output[numcells_x * y] = 0;
 		output[(numcells_x - 1) + numcells_x * y] = 0;
-		//cellcolor[numcells_x * y] = sf::Color::Cyan;
 	}
 
 	//ensure border cells are dead
@@ -41,43 +45,45 @@ GameOfLife::GameOfLife(int screenwidth, int screenheight,int cellsize)
 	{
 		output[x] = 0;
 		output[x + numcells_x * (numcells_y - 1)] = 0;
-		//cellcolor[x] = sf::Color::Cyan;
-		//cellcolor[x + numcells_x * (numcells_y - 1)] = sf::Color::Cyan;
 	}
 }
 
 void GameOfLife::ComputeState_SIMD_onethread()
 {
-	static constexpr int thread_num = 1;
-	ComputeState_SIMD_impl(1, numcells_x, 1, numcells_y - 1, thread_num);
+	ComputeState_SIMD_impl(1, numcells_x, 1, numcells_y - 1);
+	++generations;
 	output.swap(state);
+}
+
+bool GameOfLife::GenerationLimitReached()
+{
+	if (generations == generation_limit)
+	{
+		return true;
+	}
+	return false;
 }
 
 void GameOfLife::ComputeState_basic_onethread()
 {	
-	static constexpr int thread_num = 1;
-	ComputeState_basic_impl(1, numcells_x, 1, numcells_y - 1, thread_num);
+	ComputeState_basic_impl(1, numcells_x, 1, numcells_y - 1);
+	++generations;
 	output.swap(state);
 }
 
 
 void GameOfLife::ComputState_basic_multithread()
 {
-	int thread_height = numcells_y / numthreads;	//ensure its even...	//(std::thread::hardware_concurrency to determine number of threads.)
-
-	if (numcells_y % numthreads != 0)
-	{
-		throw std::runtime_error("number of cells divided by thread number not even!");
-	}
+	int chunk_height = numcells_y / task_granularity;	
 
 	pool.workerdone = 0;
 
-	for (int i = 0; i < numthreads; ++i)
+	for (int i = 0; i < task_granularity; ++i)
 	{
 		static constexpr int xstart = 1;
 		const int xend = numcells_x - 1;
-		int ystart = (i * thread_height);
-		int yend = (i + 1) * thread_height;
+		int ystart = (i * chunk_height);
+		int yend = (i + 1) * chunk_height;
 		int thread_num = i + 1;
 
 		if (ystart == 0)
@@ -90,32 +96,27 @@ void GameOfLife::ComputState_basic_multithread()
 			yend = numcells_y - 1;
 		}
 
-		std::packaged_task<void()> T(std::bind(&GameOfLife::ComputeState_basic_impl, this, xstart, xend, ystart, yend, numthreads));
+		std::packaged_task<void()> T(std::bind(&GameOfLife::ComputeState_basic_impl, this, xstart, xend, ystart, yend));
 		pool.enqueue(std::move(T));
 	}
 
-	while (pool.workerdone < numthreads) {}	//wait for all workers to complete.
-		
+	while (pool.workerdone < task_granularity) {}	//wait for all workers to complete.
+	++generations;
 	output.swap(state);	//only swap after threads complete
 }
 
 void GameOfLife::ComputState_SIMD_multithread()
 {
-	int thread_height = numcells_y / numthreads;	//ensure its even...	//(std::thread::hardware_concurrency to determine number of threads.)
-
-	if (numcells_y % numthreads != 0)
-	{
-		throw std::runtime_error("number of cells divided by thread number not even!");
-	}
+	int chunk_height = numcells_y / task_granularity;	//ensure its even...	//(std::thread::hardware_concurrency to determine number of threads.)
 
 	pool.workerdone = 0;
 
-	for (int i = 0; i < numthreads; ++i)
+	for (int i = 0; i < task_granularity; ++i)
 	{
 		static constexpr int xstart = 1;
 		const int xend = numcells_x - 1;
-		int ystart = (i * thread_height);
-		int yend = (i + 1) * thread_height;
+		int ystart = (i * chunk_height);
+		int yend = (i + 1) * chunk_height;
 		int thread_num = i + 1;
 
 		if (ystart == 0)
@@ -128,23 +129,26 @@ void GameOfLife::ComputState_SIMD_multithread()
 			yend = numcells_y - 1;
 		}
 
-		std::packaged_task<void()> T(std::bind(&GameOfLife::ComputeState_SIMD_impl, this, xstart, xend, ystart, yend, numthreads));
+		std::packaged_task<void()> T(std::bind(&GameOfLife::ComputeState_SIMD_impl, this, xstart, xend, ystart, yend));
 		pool.enqueue(std::move(T));
 	}
 
-	while (pool.workerdone < numthreads) {}	//wait for all workers to complete.
-
+	while (pool.workerdone < task_granularity) {}	//wait for all workers to complete.
+	++generations;
 	output.swap(state);	//only swap after threads complete
+}
+
+int GameOfLife::getGenerationNum() const
+{
+	return generations;
 }
 
 uint8_t& GameOfLife::GetOutputCells(int x, int y)
 {
-
 	return output[x + numcells_x * y];
 }
 
-
-void GameOfLife::ComputeState_basic_impl(int xstart, int xend, int ystart, int yend, int thread_num)
+void GameOfLife::ComputeState_basic_impl(int xstart, int xend, int ystart, int yend)
 {
 	auto cell = [=](uint8_t x, uint8_t y) { return output[x + numcells_x * y];};		
 	int neighbours;
@@ -166,7 +170,7 @@ void GameOfLife::ComputeState_basic_impl(int xstart, int xend, int ystart, int y
 	}
 }
 
-void GameOfLife::ComputeState_SIMD_impl(int xstart, int xend, int ystart, int yend, int thread_num)
+void GameOfLife::ComputeState_SIMD_impl(int xstart, int xend, int ystart, int yend)
 {
 	__m256i count_neighbours_vec;
 
@@ -178,6 +182,7 @@ void GameOfLife::ComputeState_SIMD_impl(int xstart, int xend, int ystart, int ye
 			count_neighbours_vec = _mm256_setzero_si256();
 
 			//unaligned loads, since laoding t random parts.
+			//no instruction level paralleism due to dependencies, only 2 loads (address generationu units) per cycle).
 			count_neighbours_vec = _mm256_add_epi8(_mm256_loadu_si256((const __m256i*)(&(output[x + 1 + numcells_x * (y + 1)]))), count_neighbours_vec);	//bottom right cell
 			
 			count_neighbours_vec = _mm256_add_epi8(_mm256_loadu_si256((const __m256i*)(&(output[x + 0 + numcells_x * (y + 1)]))), count_neighbours_vec);	//bottom of cell
@@ -194,7 +199,7 @@ void GameOfLife::ComputeState_SIMD_impl(int xstart, int xend, int ystart, int ye
 			
 			count_neighbours_vec = _mm256_add_epi8(_mm256_loadu_si256((const __m256i*)(&(output[x - 1 + numcells_x * (y + 0)]))), count_neighbours_vec);	//left cell
 			
-			_mm256_storeu_si256((__m256i*)(&(neighbours[x + numcells_x * y])), count_neighbours_vec);	//load neighbour count into arry
+			_mm256_storeu_si256((__m256i*)(&(neighbours[x + numcells_x * y])), count_neighbours_vec);	
 
 			 //BAD IMPLEMENTATION. NOT USING CACHE EFFECTIVELY, LONG CODE
 			 //count neighbours
@@ -233,7 +238,7 @@ void GameOfLife::ComputeState_SIMD_impl(int xstart, int xend, int ystart, int ye
 		}
 	
 	}
-
+	
 	__m256i neighbours_vec;
 	__m256i output_vec;
 	__m256i store_count_vec;
@@ -267,10 +272,11 @@ void GameOfLife::ComputeState_SIMD_impl(int xstart, int xend, int ystart, int ye
 			cmp1_cnd_vec = _mm256_cmpeq_epi8(neighbours_vec, two);		//neighbour == 2
 			cmp2_cnd_vec = _mm256_cmpeq_epi8(neighbours_vec, three);		//neighbour == 3
 
-			//covert  to 1 (cmp_eq spits out -1 instead of 1)
+			//covert  cmp_eq -1's to 1 (cmp_eq spits out -1 instead of 1)
 			cmp1_cnd_vec = _mm256_andnot_si256(cmp1_cnd_vec, one);
 			cmp1_cnd_vec = _mm256_sub_epi8(one, cmp1_cnd_vec);
 
+			//covert  cmp_eq -1's to 1 (cmp_eq spits out -1 instead of 1)
 			cmp2_cnd_vec = _mm256_andnot_si256(cmp2_cnd_vec, one);
 			cmp2_cnd_vec = _mm256_sub_epi8(one, cmp2_cnd_vec);
 

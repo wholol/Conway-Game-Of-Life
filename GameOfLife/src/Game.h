@@ -12,20 +12,27 @@ public:
 	Game(const Game& other) = delete;					//no deep copying a game object
 	Game(Game &&other) = delete;						//no moving game object
 
-	void main_menu();
 	void update();					//update logic
 	void render();					//rende r
 	bool quit();					//quit the window
 
 
 private:
+	static constexpr int cellsize = 5;
+	static constexpr int numcells_x = 32800;
+	static constexpr int numcells_y = 30000;
+	int num_threads = std::thread::hardware_concurrency();
+	static constexpr int task_granularity = 10000;
+	static constexpr int generation_limit = 300;
+	double OffSetX = 0.0, OffSetY = 0.0;
+
 	GameOfLife g;
-	RenderGrid grid;
+	RenderGrid visible_grid;
 	Timer time;
 	bool quitgame = false;			//quit game
 	bool MainMenu = true;
-	static constexpr int cellsize = 5;
-	double OffSetX = 0.0, OffSetY = 0.0;
+	
+	
 	
 	sf::Event event;					//events class
 	sf::RenderWindow window;		//windows class
