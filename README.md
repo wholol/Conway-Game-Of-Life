@@ -2,3 +2,9 @@
 Parallel Conway Game Of Life implementation, with SIMD and multithreading techniques.
 
 <img src="GameOfLife/images/conway.png">
+
+# Benchmark Results
+CPU used: i7-7700HQ  
+the game is benchmarked for up to 300 generations. It can be seen that initial multithreaded performance has improve the game compute time. SIMD, however, was even better, as SIMD utilizes memory/cache efficiently by performing multiple computes, and the memory access in is continuous form. A bad implementation of SIMD is commented out in the code (using __mm256_set), which produced worse results to the default algorithm. Adding multithreading to SIMD showed only minimal performance, as the algorithm as most likely load bound. The task granularity of the threaded code was made a small as possible to give it a slight edge over SIMD with no threading.
+  
+<img src="GameOfLife/images/benchmark.png">
