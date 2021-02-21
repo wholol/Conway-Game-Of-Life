@@ -1,7 +1,8 @@
-#include "RenderGrid.h"
+#include "Renderer.h"
 #include "Timer.h"
+#include <sstream>
 
-RenderGrid::RenderGrid(int screenwidth, int screenheight,GameOfLife& g,int cellsize , int numcells_x, int numcells_y)
+Renderer::Renderer(int screenwidth, int screenheight,GameOfLife& g,int cellsize , int numcells_x, int numcells_y)
 	:screenwidth(screenwidth) , screenheight(screenheight), g(g) , cellsize(cellsize),numcells_x(numcells_x) , numcells_y(numcells_y)
 {
 	visible_tiles_x = screenwidth / cellsize;	//visisble cells in screen space
@@ -17,9 +18,38 @@ RenderGrid::RenderGrid(int screenwidth, int screenheight,GameOfLife& g,int cells
 		visible_grid[i].setOutlineThickness(-1);
 		visible_grid[i].setOutlineColor(sf::Color::Black);
 	}
+
+	//UI initializers
+	if (!font.loadFromFile("fonts/Bebas-Regular.ttf")) { std::cout << "font loading failed" << std::endl; }
+	
+	time_taken_text.setFont(font);
+	time_taken_text.setPosition(sf::Vector2f(5, 0));
+	time_taken_text.setFillColor(sf::Color::Green);
+	time_taken_text.setOutlineColor(sf::Color::Black);
+	time_taken_text.setOutlineThickness(2);
+	time_taken_text.setCharacterSize(20);
+
+	strategy_text.setFont(font);
+	strategy_text.setPosition(sf::Vector2f(5, 35));
+	strategy_text.setFillColor(sf::Color::Green);
+	strategy_text.setOutlineColor(sf::Color::Black);
+	strategy_text.setOutlineThickness(2);
+	strategy_text.setCharacterSize(20);
 }
 
-void RenderGrid::Render(sf::RenderWindow& window,double& OffSetX,double& OffSetY)
+void Renderer::RenderUI(const std::string& strategy, double dt,sf::RenderWindow& window)
+{
+	std::stringstream ss;
+	ss << "Time taken (seconds): " << std::to_string(dt);
+	
+	time_taken_text.setString(ss.str());
+	strategy_text.setString("Compute Method: " + strategy);
+
+	window.draw(time_taken_text);
+	window.draw(strategy_text);
+}
+
+void Renderer::RenderGrid(sf::RenderWindow& window,double& OffSetX,double& OffSetY)
 {
 	if (OffSetX < 0) OffSetX = 0;
 	if (OffSetY < 0) OffSetY = 0;
@@ -45,5 +75,5 @@ void RenderGrid::Render(sf::RenderWindow& window,double& OffSetX,double& OffSetY
 			window.draw(visible_grid[x + visible_tiles_x * y]);
 		}
 	}
-	window.display();
+
 }

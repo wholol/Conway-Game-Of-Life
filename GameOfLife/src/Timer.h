@@ -15,6 +15,7 @@ private:
 	double dt;
 	double total_time = 0;
 	std::string benchmark_location;
+	std::string filename;
 	std::ofstream file;
 
 public:
@@ -23,7 +24,7 @@ public:
 	{
 		start = std::chrono::high_resolution_clock::now();
 		starttp = std::chrono::time_point_cast<std::chrono::microseconds>(start).time_since_epoch().count();
-		file = std::ofstream("benchmark_SIMD_multi.csv");
+		file = std::ofstream(filename);
 	}
 
 	Timer(const std::string& benchmark_location)
@@ -36,10 +37,10 @@ public:
 		starttp = std::chrono::time_point_cast<std::chrono::microseconds>(start).time_since_epoch().count();
 	}
 
-	auto get_dt()
+	auto get_dt() //returns time in seconds.
 	{
 		dt = endtp - starttp;
-		return dt;
+		return dt * 1e-6;
 	}
 
 	void print_dt()
@@ -53,12 +54,14 @@ public:
 		}
 		else
 		{
-			std::cout << "delta time: " << get_dt() * 1e-6 << std::endl;
+			std::cout << "delta time: " << get_dt() << std::endl;
 		}
 	}
 
-	void log_data()
+	void log_data(const std::string& filename)
 	{
+		this->filename = filename + ".csv";
+
 		for (auto& t : store_dt)
 		{
 			file << t << '\n';

@@ -5,11 +5,15 @@
 Game::Game(int screenwidth, int screenheight, const std::string& title, int framerate)
 	:window(sf::VideoMode(screenwidth, screenheight), title)
 	,g(screenwidth,screenheight,cellsize,numcells_x,numcells_y,task_granularity,num_threads,generation_limit)
-	,visible_grid(screenwidth,screenheight,g,cellsize, numcells_x, numcells_y)
+	,renderer(screenwidth,screenheight,g,cellsize, numcells_x, numcells_y)
 {}
 
 void Game::render() {		//rendering
-	visible_grid.Render(window,OffSetX,OffSetY);
+	
+	renderer.RenderGrid(window,OffSetX,OffSetY);
+	renderer.RenderUI(strategy, time.get_dt(), window);
+	window.display();	
+	
 }
 
 void Game::update() {		//update game 
@@ -39,42 +43,40 @@ void Game::update() {		//update game
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
 	{
 		strategy ="SIMD_onethread";
-		time.start_timer();
-		
 		g.resetGame();
-		
-		time.end_timer();
-		time.print_dt();
-		std::cout << "reset" << std::endl;
-
 	}
 
 	//one thread SIMD
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 	{
 		strategy = "SIMD_multithread";
 		g.resetGame();
 	}
 
 	//default method (no SIMD, no thread)
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
 	{
 		strategy = "basic_onethread";
 		g.resetGame();
 	}
 
 	//mulyithread, no SIMD
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
 	{
 		strategy = "basic_multithread";
 		g.resetGame();
 	}
 
+	//press L to log the data into a csv file.
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+	{
+		logData = true;
+	}
 
-	if (g.GenerationLimitReached())
+	if (g.GenerationLimitReached() && logData)
 	{
 		std::cout << "generation reached!.Logging data to csv." << std::endl;
-		time.log_data();
+		time.log_data(strategy);
 		g.resetGame();
 	}
 
@@ -101,10 +103,8 @@ void Game::update() {		//update game
 			g.ComputeState_basic_onethread();
 		}
 
-
 		time.end_timer();
-		std::cout << g.getGenerationNum() << std::endl;
-		time.print_dt();
+
 		window.clear();
 	}
 	

@@ -150,7 +150,7 @@ uint8_t& GameOfLife::GetOutputCells(int x, int y)
 
 void GameOfLife::resetGame()
 {
-	int chunk_height = numcells_y / task_granularity;	//ensure its even...	//(std::thread::hardware_concurrency to determine number of threads.)
+	int chunk_height = numcells_y / task_granularity;	//ensure its even...	
 
 	pool.workerdone = 0;
 
@@ -188,6 +188,7 @@ void GameOfLife::resetGame()
 
 void GameOfLife::reset_outputvec_impl(int xstart, int xend, int ystart, int yend)
 {
+	//theres probably a method to SIMDize random number gens... but im unsure how.
 	for (int y = ystart; y < yend; ++y)
 	{
 		for (int x = xstart; x < xend; ++x)
