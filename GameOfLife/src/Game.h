@@ -19,8 +19,8 @@ public:
 
 private:
 	static constexpr int cellsize = 5;
-	static constexpr int numcells_x = 32800;
-	static constexpr int numcells_y = 30000;
+	static constexpr int numcells_x = 12800;
+	static constexpr int numcells_y = 10000;
 	int num_threads = std::thread::hardware_concurrency();
 	static constexpr int task_granularity = 10000;
 	static constexpr int generation_limit = 300;
@@ -28,6 +28,7 @@ private:
 
 	GameOfLife g;
 	RenderGrid visible_grid;
+	std::string strategy = "basic_onethread";
 	Timer time;
 	bool quitgame = false;			//quit game
 	bool MainMenu = true;

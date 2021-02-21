@@ -30,7 +30,7 @@ GameOfLife::GameOfLife(int screenwidth, int screenheight,int cellsize,int numcel
 	for (int i = 0; i < vector_size; ++ i)
 	{
 		neighbours.emplace_back(0);
-		output.emplace_back(rand() % 2);		//init state to zero.
+		output.emplace_back(rand() % 2);		
 	}
 
 	//ensure border cells are dead
@@ -148,23 +148,84 @@ uint8_t& GameOfLife::GetOutputCells(int x, int y)
 	return output[x + numcells_x * y];
 }
 
+void GameOfLife::resetGame()
+{
+	int chunk_height = numcells_y / task_granularity;	//ensure its even...	//(std::thread::hardware_concurrency to determine number of threads.)
+
+	pool.workerdone = 0;
+
+	for (int i = 0; i < task_granularity; ++i)
+	{
+		static constexpr int xstart = 1;
+		const int xend = numcells_x - 1;
+		int ystart = (i * chunk_height);
+		int yend = (i + 1) * chunk_height;
+		int thread_num = i + 1;
+
+		if (ystart == 0)
+		{
+			ystart = 1;
+		}
+
+		if (yend == numcells_y)
+		{
+			yend = numcells_y - 1;
+		}
+
+		//reset the neighbour vector and output vector in seperate threads to improve performance
+		std::packaged_task<void()> T(std::bind(&GameOfLife::reset_outputvec_impl, this, xstart, xend, ystart, yend));
+		std::packaged_task<void()> N(std::bind(&GameOfLife::reset_neighbours_impl, this, xstart, xend, ystart, yend));
+		pool.enqueue(std::move(T));
+		pool.enqueue(std::move(N));
+	}
+
+	while (pool.workerdone < task_granularity) {}	//wait for all workers to complete.
+
+	//reset generation
+	generations = 0;
+
+}
+
+void GameOfLife::reset_outputvec_impl(int xstart, int xend, int ystart, int yend)
+{
+	for (int y = ystart; y < yend; ++y)
+	{
+		for (int x = xstart; x < xend; ++x)
+		{
+			output[x + numcells_x * y] = rand() % 2;
+		}
+	}
+}
+
+void GameOfLife::reset_neighbours_impl(int xstart, int xend, int ystart, int yend)
+{
+	__m256i zero = _mm256_setzero_si256();
+	
+	for (int y = ystart; y < yend; ++y)
+	{
+		for (int x = xstart; x < xend; x += sizeof(__m256i))
+		{
+			_mm256_storeu_si256((__m256i*)(&(neighbours[x + numcells_x * y])), zero);
+		}
+	}
+}
+
 void GameOfLife::ComputeState_basic_impl(int xstart, int xend, int ystart, int yend)
 {
 	auto cell = [=](uint8_t x, uint8_t y) { return output[x + numcells_x * y];};		
-	int neighbours;
+	uint8_t count_neighbours;
 	for (int y = ystart; y < yend ; ++y)
 	{
 		for (int x = xstart ; x < xend ; ++x)
 		{
-			neighbours = cell(x + 1, y + 1) + cell(x - 1, y - 1) + cell(x + 1, y) + cell(x - 1, y) + cell(x + 1, y - 1) + cell(x - 1, y + 1) + cell(x, y + 1) + cell(x, y - 1);
-			
+			count_neighbours = cell(x + 1, y + 1) + cell(x - 1, y - 1) + cell(x + 1, y) + cell(x - 1, y) + cell(x + 1, y - 1) + cell(x - 1, y + 1) + cell(x, y + 1) + cell(x, y - 1);
 			
 			if (output[x + numcells_x * y])	
 			{
-				state[x + numcells_x * y] = neighbours == 2 || neighbours == 3;
+				state[x + numcells_x * y] = count_neighbours == 2 || count_neighbours == 3;
 			}
 			else {
-				state[x + numcells_x * y] = neighbours == 3;
+				state[x + numcells_x * y] = count_neighbours == 3;
 			}
 		}
 	}

@@ -1,0 +1,14 @@
+-r
+C:\Users\jeremy\source\repos\GameOfLife\GameOfLife\VTune Profiler Results\GameOfLife\r000ps
+--stack-stitching
+--data-limit-mb=1000
+--disk-space-limit=0
+--mrte-type=java,dotnet
+--itt-config=frame
+--stackwalk=offline
+--mrte-mode=auto
+--type=cpu:counters:nostack
+--type=cpu:nostack
+--interval=100
+--
+C:\Users\jeremy\source\repos\GameOfLife\x64\Release\GameOfLife.exe

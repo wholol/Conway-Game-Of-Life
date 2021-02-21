@@ -16,6 +16,7 @@ public:
 	void ComputState_SIMD_multithread();
 	int getGenerationNum() const;
 	uint8_t& GetOutputCells(int x, int y);
+	void resetGame();
 
 private:
 	int task_granularity;
@@ -28,6 +29,9 @@ private:
 	int cellsize;
 	int generation_limit;
 	int generations = 0;
+
+	void reset_outputvec_impl(int xstart, int xend, int ystart, int yend);
+	void reset_neighbours_impl(int xstart, int xend, int ystart, int yend);
 	void ComputeState_basic_impl(int xstart, int xend, int ystart, int yend);
 	void ComputeState_SIMD_impl(int xstart, int xend, int ystart, int yend);
 };
