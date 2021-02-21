@@ -60,7 +60,7 @@ public:
 
 	void log_data(const std::string& filename)
 	{
-		this->filename = filename + ".csv";
+		this->filename = "results_csv/" + filename + ".csv";
 
 		for (auto& t : store_dt)
 		{
