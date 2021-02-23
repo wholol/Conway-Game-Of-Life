@@ -172,14 +172,13 @@ void GameOfLife::resetGame()
 			yend = numcells_y - 1;
 		}
 
-		//reset the neighbour vector and output vector in seperate threads to improve performance
 		std::packaged_task<void()> T(std::bind(&GameOfLife::reset_outputvec_impl, this, xstart, xend, ystart, yend));
 		std::packaged_task<void()> N(std::bind(&GameOfLife::reset_neighbours_impl, this, xstart, xend, ystart, yend));
 		pool.enqueue(std::move(T));
 		pool.enqueue(std::move(N));
 	}
 
-	while (pool.workerdone < task_granularity) {}	//wait for all workers to complete.
+	while (pool.workerdone < task_granularity * 2) {}	//wait for all workers to complete. we have two tasks (reset output and neighbour vector), hence multiply by two
 
 	//reset generation
 	generations = 0;
@@ -189,11 +188,13 @@ void GameOfLife::resetGame()
 void GameOfLife::reset_outputvec_impl(int xstart, int xend, int ystart, int yend)
 {
 	//theres probably a method to SIMDize random number gens... but im unsure how.
+
 	for (int y = ystart; y < yend; ++y)
 	{
 		for (int x = xstart; x < xend; ++x)
 		{
 			output[x + numcells_x * y] = rand() % 2;
+			
 		}
 	}
 }

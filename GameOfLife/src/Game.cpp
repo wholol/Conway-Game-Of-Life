@@ -50,7 +50,10 @@ void Game::update() {		//update game
 	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 	{
 		strategy = "SIMD_multithread";
+		time.start_timer();
 		g.resetGame();
+		time.end_timer();
+		time.print_dt();
 	}
 
 	//default method (no SIMD, no thread)
