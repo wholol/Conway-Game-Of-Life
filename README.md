@@ -13,7 +13,7 @@ the game is benchmarked for up to 300 generations. It can be seen that initial m
 <img src="GameOfLife/images/benchmark.png">
 
 # Program Usage
-Requires Visual Studio 2017 minimum. Download Repo and run the project.  
+Requires Visual Studio 2017 minimum, and SFML.
 Press Q,W,E and R to alternate between computation methods.  
 Press L to log data into the results_csv file. (300 generations of simulation).  
 Up, Down, Left and Right to Move aroudn the world.
